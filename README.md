@@ -23,13 +23,7 @@
 <p>
   Ecco un esempio di configurazione per un VirtualHost con supporto TLSv1.3 e RemoteIP:
 </p>
-<pre><code><VirtualHost *:80>
-    ServerName yourvirtual.host
-    RewriteEngine On
-    RewriteCond %{HTTPS} off
-    RewriteRule ^/?(.*) https://%{SERVER_NAME}/$1 [R=301,L]
-</VirtualHost>
-
+<pre><code>
 <VirtualHost *:443>
     ServerName yourvirtual.host
     DocumentRoot /var/www
