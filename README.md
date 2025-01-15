@@ -23,8 +23,9 @@
 <p>
   Ecco un esempio di configurazione per un VirtualHost con supporto TLSv1.3 e RemoteIP:
 </p>
-<pre><code>
-<VirtualHost *:443>
+<pre>
+
+  <VirtualHost *:443>
     ServerName yourvirtual.host
     DocumentRoot /var/www
     DirectoryIndex index.html
@@ -52,7 +53,7 @@
         Require all granted
     <Directory/>
 </VirtualHost>
-</code></pre>
+</pre>
 
 <h2>Why Use Age Instead of Ed25519/X25519/AES256-GCM?</h2>
 <p>
