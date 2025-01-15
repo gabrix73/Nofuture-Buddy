@@ -23,14 +23,14 @@
 <p>
   Ecco un esempio di configurazione per un VirtualHost con supporto TLSv1.3 e RemoteIP:
 </p>
-<pre><code>&lt;VirtualHost *:80&gt;
+<pre><code><VirtualHost *:80>
     ServerName yourvirtual.host
     RewriteEngine On
     RewriteCond %{HTTPS} off
     RewriteRule ^/?(.*) https://%{SERVER_NAME}/$1 [R=301,L]
-&lt;/VirtualHost&gt;
+</VirtualHost>
 
-&lt;VirtualHost *:443&gt;
+<VirtualHost *:443>
     ServerName yourvirtual.host
     DocumentRoot /var/www
     DirectoryIndex index.html
@@ -46,18 +46,18 @@
     RemoteIPHeader X-Forwarded-For
     LogFormat "- - [%{%d/%b/%Y:%H:%M:%S %z}t] \"%r\" %>s %b" noip
     CustomLog /var/log/apache2/safecomms_access.log noip
-    ErrorLog /var/log/apache2/safecomms_error.log
+    #ErrorLog /var/log/apache2/safecomms_error.log
 
     ProxyRequests Off
     ProxyPreserveHost On
     ProxyPass / http://127.0.0.1:7771/
     ProxyPassReverse / http://127.0.0.1:7771/
 
-    &lt;Directory /var/www;
+    <Directory /var/www/>
         AllowOverride None
         Require all granted
-    &lt;/Directory&gt;
-&lt;/VirtualHost&gt;
+    <Directory/>
+</VirtualHost>
 </code></pre>
 
 <h2>Why Use Age Instead of Ed25519/X25519/AES256-GCM?</h2>
