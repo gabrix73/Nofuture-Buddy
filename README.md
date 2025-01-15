@@ -23,7 +23,7 @@
 <p>
   Ecco un esempio di configurazione per un VirtualHost con supporto TLSv1.3 e RemoteIP:
 </p>
-<pre>
+<p><code>
 
   <VirtualHost *:443>
     ServerName yourvirtual.host
@@ -45,15 +45,24 @@
 
     ProxyRequests Off
     ProxyPreserveHost On
-    ProxyPass / http://127.0.0.1:7771/
-    ProxyPassReverse / http://127.0.0.1:7771/
+    ProxyPass "/start_session" "http://127.0.0.1:7771/start_session"
+    ProxyPassReverse "/start_session" "http://127.0.0.1:7771/start_session"
+
+    ProxyPass "/end_session" "http://127.0.0.1:7771/end_session"
+    ProxyPassReverse "/end_session" "http://127.0.0.1:7771/end_session"
+
+    ProxyPass "/encrypt" "http://127.0.0.1:7771/encrypt"
+    ProxyPassReverse "/encrypt" "http://127.0.0.1:7771/encrypt"
+
+    ProxyPass "/decrypt" "http://127.0.0.1:7771/decrypt"
+    ProxyPassReverse "/decrypt" "http://127.0.0.1:7771/decrypt
 
     <Directory /var/www/>
         AllowOverride None
         Require all granted
     <Directory/>
 </VirtualHost>
-</pre>
+</code></p>
 
 <h2>Why Use Age Instead of Ed25519/X25519/AES256-GCM?</h2>
 <p>
