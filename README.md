@@ -24,23 +24,17 @@ The purpose of this approach is not to leave any data after a conversation.
   3. Place the <code>index.html</code> in the Apache DocumentRoot (e.g., <code>/var/www</code>) and configure your Python backend accordingly.
 </p>
 
-<h2>Apache VirtualHost Configuration</h2>
+<h2>Recommended configuration for apache2 vrtualhost</h2>
 <p>
   Ecco un esempio di configurazione per un VirtualHost con supporto TLSv1.3 e RemoteIP:
 </p>
 <p><code>
-    ServerName yourvirtual.host
-    DocumentRoot /var/www
-    DirectoryIndex index.html
-
-    SSLEngine on
     SSLProtocol -all +TLSv1.3
-    SSLCertificateFile /etc/cert/ssl/cert.pem
-    SSLCertificateKeyFile /etc/cert/ssl/key.pem
 
     Protocols h2 http/1.1
 
     # RemoteIP configuration to avoid logging client IPs
+    # a2enmod remoteip
     RemoteIPHeader X-Forwarded-For
     LogFormat "- - [%{%d/%b/%Y:%H:%M:%S %z}t] \"%r\" %>s %b" noip
     CustomLog /var/log/apache2/safecomms_access.log noip
@@ -59,12 +53,7 @@ The purpose of this approach is not to leave any data after a conversation.
 
     ProxyPass "/decrypt" "http://127.0.0.1:7771/decrypt"
     ProxyPassReverse "/decrypt" "http://127.0.0.1:7771/decrypt
-
-    <Directory /var/www/>
-        AllowOverride None
-        Require all granted
-    <Directory/>
-</VirtualHost></code></p>
+</code></p>
 
 <h2>Why Use Age Instead of Ed25519/X25519/AES256-GCM?</h2>
 <p>
