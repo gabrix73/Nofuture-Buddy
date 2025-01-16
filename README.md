@@ -28,7 +28,7 @@ The purpose of this approach is not to leave any data after a conversation.
 <p>
   Ecco un esempio di configurazione per un VirtualHost con supporto TLSv1.3 e RemoteIP:
 </p>
-<p><code><VirtualHost :443>
+<p><code>
     ServerName yourvirtual.host
     DocumentRoot /var/www
     DirectoryIndex index.html
