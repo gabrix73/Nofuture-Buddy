@@ -257,8 +257,8 @@ footer p {
           sessionIdDisplay.textContent = "Session-Id: " + currentSessionId;
           sessionIdDisplay.style.color = "red";
           sessionIdDisplay.classList.remove('hidden');
-
-       // Mostra la chiave pubblica sotto la scritta "Session-Id"
+        
+           // Mostra la chiave pubblica sotto la scritta "Session-Id"
           sessionIdDisplay.innerHTML += `<br>Public Key: ${data.public_key}`;
 
           // Mostra il modal con la chiave pubblica
