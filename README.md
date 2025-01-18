@@ -13,8 +13,8 @@ The purpose of this approach is not to leave any data after a conversation.
 <p>
   2. Clone this repository and set up your Python environment in the application directory:
   <br>
-  <code>git clone https://github.com/gabrix73/Age</code><br>
-  <code>cd Nofuture-X25519</code><br>
+  <code>git clone https://github.com/gabrix73/Nofuture-Age</code><br>
+  <code>Nofuture-Age</code><br>
   <code>python3 -m venv nofuture-venv</code><br>
   <code>source nofuture-venv/bin/activate</code><br>
   <code>pip install -r requirements.txt</code> (Assicurati di avere le dipendenze necessarie)<br>
