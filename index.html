@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Nofuture-X25519 Interface</title>
+  <title>Nofuture Age Web Interface</title>
   <style>
     :root {
       --bg-color-day: #f0f0f0;
@@ -155,7 +155,7 @@ footer p {
 <body>
   <button id="themeToggle">Giorno</button>
   <header>
-    <h1>Nofuture-X25519 Web Interface</h1>
+    <h1>Nofuture Age Web Interface</h1>
   </header>
   <div id="sessionIdDisplay" class="hidden"></div>
 
@@ -174,9 +174,10 @@ footer p {
       This application is based on <a href="https://github.com/FiloSottile/age"><em>FiloSottile/Age</em></a> present in the <b>Debian Stable</b> repositories.<br>
       My idea is to use it alongside mainstream messaging applications without extensions to encrypt text.<br>
       As long as the session is active you will be able to encrypt text for your interlocutor and decrypt it.<br>
-      Once the session is ended, the keys used in the previous session are lost forever making it impossible to retrieve the plaintexts for you<br> 
-      and the rest of the world, <b>forever</b>.
+      Once the session is ended, the keys used in the previous session are lost making it impossible to retrieve the plaintexts.<br>
+      The purpose of this approach is not to leave any data after a conversation.
       </p>
+      <p><b>Note:</b> Age uses <em>X25519</em> for asymmetric key agreement and <em>ChaCha20-Poly1305</em> for authenticated symmetric encryption.</p>
     <div class="session-buttons">
       <button id="startSessionBtn">Start Session</button>
       <button id="endSessionBtn" class="hidden">End Session</button>
@@ -199,10 +200,13 @@ footer p {
   </main>
 
   <footer>
+    <img src="victorlogo2.jpg" alt="Victor Hostile Communication Center" style="height:10em; width:10em; vertical-align:middle;">
     <p><a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;%67%61%62%72%69%65%6C%31%40%76%69%72%65%62%65%6E%74%2E%61%72%74">email me</a></p>
     <p>Gpg Public Key: <a href="https://yamn.virebent.art/0x6A53DEB9200B6314.asc">0x6A53DEB9200B6314</a></p>
     <p>Key fingerprint = 569F C114 5F3F 4C61 0545  4E59 6A53 DEB9 200B 6314</p>
-    <p class="highlight"><a href="https://yamn.virebent.art/">victor hostile communication</a> against oppression and oppressors.</p>
+    <p class="highlight"><a href="https://github.com/gabrix73/Nofuture-X25519">gabrix73/Nofuture-X25519</a></p>
+    <p class="highlight"><a href="https://yamn.virebent.art/">Victor Hostile Communication Center</a></p>
+    <p class="highlight"><em>against oppression and oppressors</em></p>
   </footer>
 
   <script>
@@ -254,6 +258,9 @@ footer p {
           sessionIdDisplay.style.color = "red";
           sessionIdDisplay.classList.remove('hidden');
 
+       // Mostra la chiave pubblica sotto la scritta "Session-Id"
+          sessionIdDisplay.innerHTML += `<br>Public Key: ${data.public_key}`;
+
           // Mostra il modal con la chiave pubblica
           if(data.public_key) {
             modalPublicKey.textContent = data.public_key;
@@ -301,6 +308,7 @@ footer p {
       .then(data => {
         currentSessionId = null;
         sessionIdDisplay.classList.add('hidden');
+        sessionIdDisplay.textContent = "";
         publicKeyModal.style.display = "none"; 
         startSessionBtn.classList.remove('hidden');
         endSessionBtn.classList.add('hidden');
@@ -324,7 +332,7 @@ footer p {
       };
       fetch(API_ENCRYPT, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "text/plain; charset=utf-8","Content-Transfer-Encoding": "8bit","MIME-Version": "1.0" },
         body: JSON.stringify(payload)
       })
       .then(response => response.json())
@@ -352,7 +360,7 @@ footer p {
       };
       fetch(API_DECRYPT, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "text/plain; charset=utf-8","Content-Transfer-Encoding": "8bit","MIME-Version": "1.0" },
         body: JSON.stringify(payload)
       })
       .then(response => response.json())
