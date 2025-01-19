@@ -53,6 +53,9 @@ The purpose of this approach is not to leave any data after a conversation.
 
     ProxyPass "/decrypt" "http://127.0.0.1:7771/decrypt"
     ProxyPassReverse "/decrypt" "http://127.0.0.1:7771/decrypt
+   
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; frame-src 'none'; base-uri 'self'; form-action 'self';"
 </code></p>
 
 <h2>Why Use Age Instead of Ed25519/X25519/AES256-GCM?</h2>
