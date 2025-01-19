@@ -30,10 +30,8 @@ The purpose of this approach is not to leave any data after a conversation.
 </p>
 <p><code>
     SSLProtocol -all +TLSv1.3
-
     Protocols h2 http/1.1
-
-    # RemoteIP configuration to avoid logging client IPs
+    # RemoteIP configuration to avoid logging client IPs (NOLOG)
     # a2enmod remoteip
     RemoteIPHeader X-Forwarded-For
     LogFormat "- - [%{%d/%b/%Y:%H:%M:%S %z}t] \"%r\" %>s %b" noip
