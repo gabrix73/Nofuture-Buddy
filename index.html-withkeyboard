@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Nofuture Age Web Interface</title>
+  <style>
+    :root {
+      --bg-color-day: #f0f0f0;
+      --text-color-day: #333;
+      --bg-color-night: #2e2e2e;
+      --text-color-night: #f0f0f0;
+      --primary-color: #0088cc;
+      --primary-hover: #007bb5;
+      --session-id-color: red;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: var(--bg-color-night);
+      color: var(--text-color-night);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      background-color: var(--primary-color);
+      padding: 1rem;
+      text-align: center;
+      color: #fff;
+    }
+    header h1 { margin: 0; }
+    #sessionIdDisplay {
+      background-color: #000;
+      color: var(--session-id-color);
+      padding: 0.5rem;
+      text-align: center;
+      font-weight: bold;
+    }
+    main {
+      flex: 1;
+      max-width: 800px;
+      margin: auto;
+      padding: 1rem;
+    }
+    .instructions {
+      margin-bottom: 1rem;
+    }
+    .session-buttons, .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .session-buttons button, .buttons button {
+      flex: 1;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 4px;
+      background-color: var(--primary-color);
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .session-buttons button:hover, .buttons button:hover {
+      background-color: var(--primary-hover);
+    }
+    .row {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 1rem;
+    }
+    .row label { margin-bottom: 0.5rem; }
+    .row input[type="text"], .row textarea {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    textarea {
+      min-height: 400px;
+      resize: vertical;
+    }
+    #themeToggle {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      padding: 0.5rem;
+      cursor: pointer;
+      background-color: var(--primary-color);
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+    }
+    @media (max-width: 600px) {
+      textarea { min-height: 300px; }
+    }
+    /* Modal styling */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+      background-color: #fff;
+      margin: 15% auto;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 90%;
+      color: #000;
+      text-align: center;
+    }
+    .modal-content h2 {
+      margin-top: 0;
+    }
+    .copy-block {
+      background: #eee;
+      color: #000;
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      word-break: break-all;
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    footer {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      background-color: #333;
+      color: #ccc;
+      padding: 1rem;
+      font-size: 0.9rem;
+    }
+    footer img {
+      height: 10em;
+      width: 10em;
+      margin-right: 1rem;
+    }
+    footer div {
+      flex: 1; /* Permette al testo di occupare lo spazio disponibile */
+      text-align: center;
+      line-height: 1.8;
+    }
+    footer p {
+      margin: 0.5rem 0;
+      text-align: center;
+    }
+    footer a {
+      color: #ccc;
+      text-decoration: none;
+    }
+    footer a:hover {
+      color: white; /* Cambia colore al passaggio del mouse */
+    }
+    /* Pulsante centrale per aprire la tastiera */
+    #showKeyboardButton {
+      padding: 15px 30px;
+      font-size: 18px;
+      background-color: #007acc;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      display: inline-block;
+      text-align: center;
+      margin-top: 20px;
+    }
+    #showKeyboardButton:hover {
+      background-color: #005f8c;
+    }
+    /* Descrizione */
+    #keyboardDescription {
+      font-size: 16px;
+      line-height: 1.5;
+      color: white; /* Puoi cambiarlo in base alle preferenze */
+      text-align: center;
+      margin: 20px auto;
+    }
+    /* Textarea */
+    #textInput {
+      width: 100%;
+      max-width: 700px;
+      height: 100px;
+      font-size: 18px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      margin: 20px auto;
+      display: block;
+    }
+    /* Contenitore flottante per la tastiera */
+    #keyboardContainer {
+      position: fixed;
+      top: 100px;
+      left: 100px;
+      width: 400px;
+      background-color: #f9f9f9;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+      overflow: hidden;
+      display: none; /* Nasconde la tastiera inizialmente */
+    }
+    /* Header della finestra flottante */
+    #keyboardHeader {
+      background-color: #007acc;
+      color: white;
+      padding: 10px;
+      cursor: grab;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #keyboardHeader span {
+      font-size: 16px;
+      font-weight: bold;
+    }
+    #closeKeyboardButton {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    #closeKeyboardButton:hover {
+      color: #ffdddd;
+    }
+    /* Corpo della tastiera */
+    #virtualKeyboard {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr); /* Layout a 6 colonne */
+      gap: 5px;
+      padding: 10px;
+    }
+    /* Tasti */
+    .key {
+      padding: 10px;
+      background-color: #0088cc;
+      color: white;
+      text-align: center;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      user-select: none;
+    }
+    .key:hover {
+      background-color: #005f8c;
+    }
+    /* Pulsante Clear */
+    #clearButton {
+      margin: 10px;
+      padding: 8px 20px;
+      font-size: 14px;
+      cursor: pointer;
+      background-color: #007acc;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    #clearButton:hover {
+      background-color: #005f8c;
+    }
+    /* Popup di spiegazione */
+    #keyboardTooltip {
+      position: absolute;
+      top: 110px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #f9f9f9;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      padding: 10px;
+      z-index: 1000;
+      width: 300px;
+      text-align: left;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    #keyboardTooltip p {
+      margin: 0;
+      color: #333;
+    }
+  /* Stili per la barra di ricerca */
+  .search-input {
+    width: calc(100% - 20px);
+    margin: 10px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+
+  /* Stili per il pulsante di copia */
+  .copy-button {
+    margin: 10px;
+    padding: 8px 20px;
+    font-size: 14px;
+    cursor: pointer;
+    background-color: #007acc;
+    color: white;
+    border: none;
+    border-radius: 5px;
+  }
+  .copy-button:hover {
+    background-color: #005f8c;
+  }
+  /* Stili per il popup dei caratteri */
+  .popup {
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    padding: 5px;
+    z-index: 1000;
+  }
+  .popup-option {
+    padding: 5px;
+    cursor: pointer;
+  }
+  .popup-option:hover {
+    background-color: #e0e0e0;
+  }
+  </style>
+</head>
+<body>
+  <button id="themeToggle">Giorno</button>
+  <header>
+    <h1>Nofuture Age Web Interface</h1>
+  </header>
+  <div id="sessionIdDisplay" class="hidden"></div>
+
+  <!-- Modal per mostrare la chiave pubblica -->
+  <div id="publicKeyModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="modalClose">&times;</span>
+      <h2>Public Key</h2>
+      <p>Please share this public key with the intended message recipient.</p>
+      <p class="copy-block" id="modalPublicKey" title="Hover to copy"></p>
+    </div>
+  </div>
+
+  <main>
+    <p class="instructions">
+      This application is based on <a href="https://github.com/FiloSottile/age"><em>FiloSottile/Age</em></a> present in the <b>Debian Stable</b> repositories.<br>
+      My idea is to use it alongside mainstream messaging applications without extensions to encrypt text.<br>
+      As long as the session is active you will be able to encrypt text for your interlocutor and decrypt it.<br>
+      Once the session is ended, the keys used in the previous session are lost making it impossible to retrieve the plaintexts.<br>
+      The purpose of this approach is not to leave any data after a conversation.
+    </p>
+    <p><b>Note:</b> Age uses <em>X25519</em> for asymmetric key agreement and <em>ChaCha20-Poly1305</em> for authenticated symmetric encryption.</p>
+    <div class="session-buttons">
+      <button id="startSessionBtn">Start Session</button>
+      <button id="endSessionBtn" class="hidden">End Session</button>
+    </div>
+
+    <div class="row">
+      <label for="publicKeyInput">Public Key (for encryption/decryption):</label>
+      <input type="text" id="publicKeyInput" placeholder="Paste public key here"/>
+    </div>
+
+    <div class="row">
+      <label for="textInput">Text (clear or encrypted):</label>
+      <textarea id="textInput" placeholder="Enter text here..."></textarea>
+    </div>
+
+    <div class="buttons">
+      <button id="encryptBtn">Encrypt</button>
+      <button id="decryptBtn">Decrypt</button>
+    </div>
+
+    <!-- Pulsante centrale per attivare la tastiera -->
+    <div style="text-align: center; margin-top: 50px; 50px; position: relative;">
+      <button id="showKeyboardButton">Virtual Keyboard</button>
+
+      <div id="keyboardTooltip" style="display: none;">
+        <p>
+          The virtual keyboard is designed to protect you from keyloggers and spyware that may be installed on your computer or on this server.
+          Keyloggers are malicious programs that capture your physical keystrokes to steal sensitive information like passwords or messages.
+          <br><br>
+          This virtual keyboard generates randomized layouts to make it harder for malicious software to predict your input.
+          Additionally, we use internal obfuscation to ensure that any intercepted keystrokes appear scrambled to attackers,
+          adding an extra layer of security.
+        </p>
+      </div>
+    </div>
+
+    <!-- Contenitore flottante per la tastiera -->
+    <div id="keyboardContainer" style="display: none;">
+      <div id="keyboardHeader">
+        <span>Virtual Keyboard</span>
+        <button id="closeKeyboardButton">&times;</button>
+      </div>
+      <div id="virtualKeyboard"></div>
+      <div id="keyboardControls">
+        <button id="clearButton">Clear</button>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <img src="victorlogo2.jpg" alt="Victor Hostile Communication Center" style="height:10em; width:10em; vertical-align:middle;">
+    <p><a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;%67%61%62%72%69%65%6C%31%40%76%69%72%65%62%65%6E%74%2E%61%72%74">email me</a></p>
+    <p>Gpg Public Key: <a href="https://yamn.virebent.art/0x6A53DEB9200B6314.asc">0x6A53DEB9200B6314</a></p>
+    <p>Key fingerprint = 569F C114 5F3F 4C61 0545  4E59 6A53 DEB9 200B 6314</p>
+    <p class="highlight"><a href="https://github.com/gabrix73/Nofuture-X25519">gabrix73/Nofuture-X25519</a></p>
+    <p class="highlight"><a href="https://yamn.virebent.art/">Victor Hostile Communication Center</a></p>
+    <p class="highlight"><em>against oppression and oppressors</em></p>
+  </footer>
+
+  <script>
+    let currentSessionId = null;
+    const sessionIdDisplay = document.getElementById('sessionIdDisplay');
+    const themeToggle = document.getElementById('themeToggle');
+    const startSessionBtn = document.getElementById('startSessionBtn');
+    const endSessionBtn = document.getElementById('endSessionBtn');
+    const publicKeyInput = document.getElementById('publicKeyInput');
+    const textInput = document.getElementById('textInput');
+    const encryptBtn = document.getElementById('encryptBtn');
+    const decryptBtn = document.getElementById('decryptBtn');
+    const publicKeyModal = document.getElementById('publicKeyModal');
+    const modalPublicKey = document.getElementById('modalPublicKey');
+    const modalClose = document.getElementById('modalClose');
+    const API_START = "/start_session";
+    const API_END = "/end_session";
+    const API_ENCRYPT = "/encrypt";
+    const API_DECRYPT = "/decrypt";
+
+    let isNightMode = true;
+    themeToggle.addEventListener('click', () => {
+      isNightMode = !isNightMode;
+      if(isNightMode) {
+        document.body.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-color-night');
+        document.body.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text-color-night');
+        themeToggle.textContent = "Giorno";
+      } else {
+        document.body.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-color-day');
+        document.body.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text-color-day');
+        themeToggle.textContent = "Notte";
+      }
+    });
+
+    startSessionBtn.addEventListener("click", () => {
+      fetch(API_START, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      })
+      .then(response => response.json())
+      .then(data => {
+        if(data.session_id) {
+          currentSessionId = data.session_id;
+          sessionIdDisplay.textContent = "Session-Id: " + currentSessionId;
+          sessionIdDisplay.style.color = "red";
+          sessionIdDisplay.classList.remove('hidden');
+
+          // Mostra la chiave pubblica sotto la scritta "Session-Id"
+          sessionIdDisplay.innerHTML += `<br>Public Key: ${data.public_key}`;
+
+          // Mostra il modal con la chiave pubblica
+          if(data.public_key) {
+            modalPublicKey.textContent = data.public_key;
+            publicKeyModal.style.display = "block";
+          }
+
+          startSessionBtn.classList.add('hidden');
+          endSessionBtn.classList.remove('hidden');
+        } else {
+          alert("Error starting session: " + JSON.stringify(data));
+        }
+      })
+      .catch(error => {
+        alert("Error: " + error);
+      });
+    });
+
+    modalClose.addEventListener("click", () => {
+      publicKeyModal.style.display = "none";
+    });
+
+    window.addEventListener("click", (event) => {
+      if(event.target === publicKeyModal) {
+        publicKeyModal.style.display = "none";
+      }
+    });
+
+    // Copia la chiave pubblica al passaggio del mouse
+    modalPublicKey.addEventListener("mouseenter", () => {
+      navigator.clipboard.writeText(modalPublicKey.textContent).then(() => {
+        modalPublicKey.title = "Copied!";
+      }).catch(() => {
+        modalPublicKey.title = "Copy failed!";
+      });
+    });
+
+    endSessionBtn.addEventListener("click", () => {
+      if(!currentSessionId) return;
+      fetch(API_END, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: currentSessionId })
+      })
+      .then(response => response.json())
+      .then(data => {
+        currentSessionId = null;
+        sessionIdDisplay.classList.add('hidden');
+        sessionIdDisplay.textContent = "";
+        publicKeyModal.style.display = "none";
+        startSessionBtn.classList.remove('hidden');
+        endSessionBtn.classList.add('hidden');
+        publicKeyInput.value = "";
+        textInput.value = "";
+      })
+      .catch(error => {
+        alert("Error ending session: " + error);
+      });
+    });
+
+encryptBtn.addEventListener("click", () => {
+  if (!currentSessionId) {
+    alert("Start a session first.");
+    return;
+  }
+
+const recipientPublicKey = publicKeyInput.value.trim();
+const plaintext = textInput.value.trim();
+
+console.log("Recipient Public Key:", recipientPublicKey); // Aggiungi un log per il debug
+console.log("Plaintext:", plaintext); // Aggiungi un log per il debug
+
+if (!recipientPublicKey || !plaintext) {
+  alert("Both public key and plaintext are required for encryption.");
+  return;
+}
+
+
+  const payload = {
+    session_id: currentSessionId,
+    recipient_public_key_b64: recipientPublicKey,
+    plaintext: plaintext
+  };
+
+  console.log("Encrypting with payload:", payload); // Aggiungi un log per il debug
+
+  fetch(API_ENCRYPT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.encrypted_b64) {
+      textInput.value = data.encrypted_b64;
+    } else {
+      alert("Encryption error: " + JSON.stringify(data));
+    }
+  })
+  .catch(error => {
+    alert("Error: " + error);
+  });
+});
+    
+
+    decryptBtn.addEventListener("click", () => {
+      if(!currentSessionId) {
+        alert("Start a session first.");
+        return;
+      }
+      const payload = {
+        session_id: currentSessionId,
+        sender_public_key_b64: publicKeyInput.value.trim(),
+        encrypted_b64: textInput.value.trim()
+      };
+      fetch(API_DECRYPT, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain; charset=utf-8","Content-Transfer-Encoding": "8bit","MIME-Version": "1.0" },
+        body: JSON.stringify(payload)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if(data.plaintext) {
+          textInput.value = data.plaintext;
+        } else {
+          alert("Decryption error: " + JSON.stringify(data));
+        }
+      })
+      .catch(error => {
+        alert("Error: " + error);
+      });
+    });
+  </script>
+
+  <!-- Carica keyboard.js dopo il caricamento del DOM -->
+  <script src="js/keyboard.js" defer></script>
+</body>
+</html>
