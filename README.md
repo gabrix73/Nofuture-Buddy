@@ -28,7 +28,7 @@ The purpose of this approach is not to leave any data after a conversation.
 <p>
   Ecco un esempio di configurazione per un VirtualHost con supporto TLSv1.3 e RemoteIP:
 </p>
-<p><code>
+<pre>
     SSLProtocol -all +TLSv1.3
     Protocols h2 http/1.1
     # RemoteIP configuration to avoid logging client IPs (NOLOG)
@@ -46,15 +46,20 @@ The purpose of this approach is not to leave any data after a conversation.
     ProxyPass "/end_session" "http://127.0.0.1:7771/end_session"
     ProxyPassReverse "/end_session" "http://127.0.0.1:7771/end_session"
 
-    ProxyPass "/encrypt" "http://127.0.0.1:7771/encrypt"
-    ProxyPassReverse "/encrypt" "http://127.0.0.1:7771/encrypt"
+    # Buddy system: pair_sessions
+    ProxyPass "/pair_sessions" "http://127.0.0.1:7771/pair_sessions"
+    ProxyPassReverse "/pair_sessions" "http://127.0.0.1:7771/pair_sessions"
 
-    ProxyPass "/decrypt" "http://127.0.0.1:7771/decrypt"
-    ProxyPassReverse "/decrypt" "http://127.0.0.1:7771/decrypt
+    # Buddy system: buddy_encrypt
+    ProxyPass "/buddy_encrypt" "http://127.0.0.1:7771/buddy_encrypt"
+    ProxyPassReverse "/buddy_encrypt" "http://127.0.0.1:7771/buddy_encrypt"
+
+    # Buddy system: buddy_decrypt
+    ProxyPass "/buddy_decrypt" "http://127.0.0.1:7771/buddy_decrypt"
+    ProxyPassReverse "/buddy_decrypt" "http://127.0.0.1:7771/buddy_decrypt"
    
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
-    Header set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; frame-src 'none'; base-uri 'self'; form-action 'self';"
-</code></p>
+</pre>
 
 <h2>Why Use Age Instead of Ed25519/X25519/AES256-GCM?</h2>
 <p>
@@ -86,7 +91,51 @@ Here’s why signing and verifying aren’t required within Age’s core design.
 <p>
   Note that Age focuses on encryption/decryption without built-in signing. This decision was made for simplicity, as incorporating signing (like Ed25519) would add complexity. Our use case prioritizes easy text encryption/decryption alongside mainstream messaging apps.
 </p>
+<h2>Decryption Error: InvalidTag</h2>
+<p>During the decryption process, users may encounter the InvalidTag error. 
+  This error typically arises when the authentication tag appended to the ciphertext does not match the expected value during verification. 
+  Possible causes include:</p>
 
+Data Tampering: The ciphertext may have been altered or corrupted during transmission.
+Incorrect Keys: Mismatched or incorrect encryption/decryption keys between paired sessions.
+Nonce Reuse: Reusing nonces can compromise the security of the encrypted data, leading to authentication failures.
+
+Resolution Steps:
+
+Ensure Key Consistency: Verify that both parties are using the correct and matching key pairs.
+Validate Data Integrity: Implement checks to ensure that the ciphertext remains unaltered during transfer.
+Proper Nonce Management: Utilize unique nonces for each encryption operation to maintain security and prevent reuse.
+
+🔧 Technical Functionalities
+Our application leverages robust cryptographic practices to ensure secure communication between paired sessions. 
+Key features include:
+
+Session Management: Create and manage unique sessions identified by Session IDs, facilitating secure pairing between users.
+Buddy System: Pair two sessions to enable mutual encryption and decryption of messages, ensuring that only paired buddies can communicate securely.
+Encryption/Decryption: Utilize authenticated encryption to protect message confidentiality and integrity, preventing unauthorized access and tampering.
+In-Memory Data Protection: NOT YET IMPLEMENTED MemGuard to safeguard sensitive data in RAM, reducing the risk of memory scraping and data leakage.
+
+🤝 Why Adopt the Buddy System?
+The Buddy System enhances security by establishing a trusted connection between two users. Benefits include:
+
+Mutual Authentication: Ensures that both parties verify each other's identities before establishing a communication channel.
+Secure Key Exchange: Facilitates the safe exchange of cryptographic keys without exposing them to potential interceptors.
+Simplified Pairing: Streamlines the process of connecting users, making secure communication accessible and user-friendly.
+
+🔒 Why Libsodium with PyNaCl?
+We chose Libsodium paired with PyNaCl for our cryptographic needs due to their proven security, performance, and ease of integration:
+
+Proven Security: Libsodium is a well-regarded, high-security library trusted by the industry for implementing cryptographic operations.
+Ease of Use: PyNaCl provides Python bindings for Libsodium, offering a simple and intuitive API for developers to implement encryption, decryption, and key management.
+Performance: Both libraries are optimized for speed and efficiency, ensuring that cryptographic operations do not become a bottleneck in the application.
+Comprehensive Features: Support for modern encryption algorithms, authenticated encryption, key exchange mechanisms, and secure memory management aligns with our security requirements.
+
+📚 Additional Resources
+MemGuard Documentation: https://github.com/awnumar/memguard
+PyNaCl Documentation: https://pynacl.readthedocs.io/en/stable/
+Libsodium Documentation: https://libsodium.gitbook.io/doc/
+Content Security Policy (CSP) Guide: MDN Web Docs on CSP
+</p>
 <h2>License</h2>
 <p>
   This project is licensed under the <strong>MIT License</strong>.
