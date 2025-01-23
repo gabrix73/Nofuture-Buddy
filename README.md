@@ -13,7 +13,7 @@
   <code>source nofuture-venv/bin/activate</code><br>
   <code>pip install -r requirements.txt</code> (Assicurati di avere le dipendenze necessarie)<br>
 </p>
- requirements.txt: Flask,PyNacl
+ requirements.txt: Flask,PyNaCl
 <br><p>
   3. Place the <code>index.html</code> in the Apache DocumentRoot (e.g., <code>/var/www</code>) and configure your Python backend accordingly.
 </p>
