@@ -1,5 +1,5 @@
 # Nofuture-Age
-<h2>The idea</h2>h2>
+<h2>The idea</h2>
 This web interface is designed to work alongside mainstream chat interfaces. 
 It wants to be like an otr or omemo plugin for xmpp, but external to the chat application. 
 It’s all about initializing the (Alice and Bob) sessions and then synchronizing them, everything happens in ram on our server. 
