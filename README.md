@@ -63,46 +63,46 @@ Easier and safer generate and pair ephemeral conversations.<br>
 </pre>
 
 <h2>Decryption Error: InvalidTag and Buddy System</h2>
-<p>During the decryption process, users used to encounter the InvalidTag error. 
-  This error typically arises when the authentication tag appended to the ciphertext does not match the expected value during verification. 
-  Possible causes include:</p>
+<p>During the decryption process, users used to encounter the InvalidTag error.<br> 
+  This error typically arises when the authentication tag appended to the ciphertext does not match the expected value during verification.</p> <br>
+  Possible causes include:<br>
 
-Data Tampering: The ciphertext may have been altered or corrupted during transmission.
-Incorrect Keys: Mismatched or incorrect encryption/decryption keys between paired sessions.
-Nonce Reuse: Reusing nonces can compromise the security of the encrypted data, leading to authentication failures.
+Data Tampering: The ciphertext may have been altered or corrupted during transmission.<br>
+Incorrect Keys: Mismatched or incorrect encryption/decryption keys between paired sessions.<br>
+Nonce Reuse: Reusing nonces can compromise the security of the encrypted data, leading to authentication failures.<br>
 
-Resolution Steps:
+Resolution Steps:<br><br>
 
-Ensure Key Consistency: Verify that both parties are using the correct and matching key pairs.
-Validate Data Integrity: Implement checks to ensure that the ciphertext remains unaltered during transfer.
-Proper Nonce Management: Utilize unique nonces for each encryption operation to maintain security and prevent reuse.
+Ensure Key Consistency: Verify that both parties are using the correct and matching key pairs.<br>
+Validate Data Integrity: Implement checks to ensure that the ciphertext remains unaltered during transfer.<br>
+Proper Nonce Management: Utilize unique nonces for each encryption operation to maintain security and prevent reuse.<br>
 
 🔧 Technical Functionalities
-Our application leverages robust cryptographic practices to ensure secure communication between paired sessions. 
-Key features include:
+Our application leverages robust cryptographic practices to ensure secure communication between paired sessions. <br>
+Key features include:<br><br>
 
-Session Management: Create and manage unique sessions identified by Session IDs, facilitating secure pairing between users.
-Buddy System: Pair two sessions to enable mutual encryption and decryption of messages, ensuring that only paired buddies can communicate securely.
-Encryption/Decryption: Utilize authenticated encryption to protect message confidentiality and integrity, preventing unauthorized access and tampering.
-In-Memory Data Protection: NOT YET IMPLEMENTED MemGuard to safeguard sensitive data in RAM, reducing the risk of memory scraping and data leakage.
+Session Management: Create and manage unique sessions identified by Session IDs, facilitating secure pairing between users.<br>
+Buddy System: Pair two sessions to enable mutual encryption and decryption of messages, ensuring that only paired buddies can communicate securely.<br>
+Encryption/Decryption: Utilize authenticated encryption to protect message confidentiality and integrity, preventing unauthorized access and tampering.<br>
+In-Memory Data Protection: <b>NOT YET IMPLEMENTED</b> MemGuard to safeguard sensitive data in RAM, reducing the risk of memory scraping and data leakage.<br>
 
-🤝 Why Adopt the Buddy System?
-The Buddy System enhances security by establishing a trusted connection between two users. Benefits include:
+🤝 Why Adopt the Buddy System?<br>
+The Buddy System enhances security by establishing a trusted connection between two users. Benefits include:<br><br>
 
-Mutual Authentication: Ensures that both parties verify each other's identities before establishing a communication channel.
-Secure Key Exchange: Facilitates the safe exchange of cryptographic keys without exposing them to potential interceptors.
-Simplified Pairing: Streamlines the process of connecting users, making secure communication accessible and user-friendly.
+Mutual Authentication: Ensures that both parties verify each other's identities before establishing a communication channel.<br>
+Secure Key Exchange: Facilitates the safe exchange of cryptographic keys without exposing them to potential interceptors.<br>
+Simplified Pairing: Streamlines the process of connecting users, making secure communication accessible and user-friendly.<br>
 
-🔒 Why Libsodium with PyNaCl?
-We chose Libsodium paired with PyNaCl for our cryptographic needs due to their proven security, performance, and ease of integration:
+🔒 Why Libsodium with PyNaCl?<br>
+We chose Libsodium paired with PyNaCl for our cryptographic needs due to their proven security, performance, and ease of integration:<br><br>
 
-Proven Security: Libsodium is a well-regarded, high-security library trusted by the industry for implementing cryptographic operations.
-Ease of Use: PyNaCl provides Python bindings for Libsodium, offering a simple and intuitive API for developers to implement encryption, decryption, and key management.
-Performance: Both libraries are optimized for speed and efficiency, ensuring that cryptographic operations do not become a bottleneck in the application.
-Comprehensive Features: Support for modern encryption algorithms, authenticated encryption, key exchange mechanisms, and secure memory management aligns with our security requirements.
+Proven Security: Libsodium is a well-regarded, high-security library trusted by the industry for implementing cryptographic operations.<br>
+Ease of Use: PyNaCl provides Python bindings for Libsodium, offering a simple and intuitive API for developers to implement encryption, decryption, and key management.<br>
+Performance: Both libraries are optimized for speed and efficiency, ensuring that cryptographic operations do not become a bottleneck in the application.<br>
+Comprehensive Features: Support for modern encryption algorithms, authenticated encryption, key exchange mechanisms, and secure memory management aligns with our security requirements.<br>
 
-📚 Additional Resources
-MemGuard Documentation: https://github.com/awnumar/memguard
+📚 Additional Resources<br>
+<p>MemGuard Documentation: https://github.com/awnumar/memguard
 PyNaCl Documentation: https://pynacl.readthedocs.io/en/stable/
 Libsodium Documentation: https://libsodium.gitbook.io/doc/
 Content Security Policy (CSP) Guide: MDN Web Docs on CSP
