@@ -18,7 +18,7 @@
   3. Place the <code>index.html</code> in the Apache DocumentRoot (e.g., <code>/var/www</code>) and configure your Python backend accordingly.
 </p>
 
-<h2>Recommended configuration for apache2 vrtualhost</h2>
+<h2>Recommended configuration for Apache2 VirtualHost</h2>
 <p>
   Ecco un esempio di configurazione per un VirtualHost con supporto TLSv1.3 e RemoteIP:
 </p>
