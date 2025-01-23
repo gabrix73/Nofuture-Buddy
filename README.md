@@ -2,10 +2,10 @@
 <h2>The idea</h2>
 This web interface is designed to work alongside mainstream chat interfaces. 
 It wants to be like an otr or omemo plugin for xmpp, but external to the chat application. 
-It’s all about initializing the (Alice and Bob) sessions and then synchronizing them, everything happens in ram on our server. 
+It’s all about initializing the (Alice and Bob) session ids and then pairing them, everything happens in ram on our server. 
 Once the session is finished, all input data and generated keys and session id are deleted forever. 
-No saving of keys and sessions. 
-Easier and safer generate new ephemeral conversations.<br>
+No saving of keys and sessions on hard disk or database of any kind. 
+Easier and safer generate and pair ephemeral conversations.<br>
 <h2>Installation on Debian</h2>
 <p>
   1. Install required packages:<br>
