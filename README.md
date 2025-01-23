@@ -1,10 +1,4 @@
 # Nofuture-Age
-<h1>Nofuture-Age Web Interface</h1>
-This application is based on <b>FiloSottile/Age</b> present also in the Debian Stable repositories.
-My idea is to use it alongside mainstream messaging applications for encrypting/decrypting of text messages.
-As long as the session is active you will be able to encrypt text for your interlocutor and decrypt it.
-Once the session is ended, the keys used in the previous session are lost making it impossible to retrieve the plaintexts.
-The purpose of this approach is not to leave any data after a conversation.
 <h2>Installation on Debian</h2>
 <p>
   1. Install required packages:<br>
