@@ -55,7 +55,7 @@
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
 </pre>
 
-<h2>Decryption Error: InvalidTag</h2>
+<h2>Decryption Error: InvalidTag and Buddy System</h2>
 <p>During the decryption process, users used to encounter the InvalidTag error. 
   This error typically arises when the authentication tag appended to the ciphertext does not match the expected value during verification. 
   Possible causes include:</p>
