@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Nofuture-X25519 Interface</title>
+  <title>Nofuture Age Web Interface (Libsodium)</title>
   <style>
     :root {
       --bg-color-day: #f0f0f0;
@@ -12,7 +12,7 @@
       --text-color-night: #f0f0f0;
       --primary-color: #0088cc;
       --primary-hover: #007bb5;
-      --session-id-color: red;
+      --session-id-color: #ff4444;
     }
     body {
       margin: 0;
@@ -31,13 +31,7 @@
       color: #fff;
     }
     header h1 { margin: 0; }
-    #sessionIdDisplay {
-      background-color: #000;
-      color: var(--session-id-color);
-      padding: 0.5rem;
-      text-align: center;
-      font-weight: bold;
-    }
+
     main {
       flex: 1;
       max-width: 800px;
@@ -80,7 +74,7 @@
       box-sizing: border-box;
     }
     textarea {
-      min-height: 400px;
+      min-height: 300px;
       resize: vertical;
     }
     #themeToggle {
@@ -95,141 +89,214 @@
       color: #fff;
     }
     @media (max-width: 600px) {
-      textarea { min-height: 300px; }
+      textarea { min-height: 200px; }
     }
-    /* Modal styling */
-    .modal {
-      display: none; 
-      position: fixed; 
-      z-index: 1000; 
-      left: 0;
-      top: 0;
-      width: 100%; 
-      height: 100%; 
-      overflow: auto; 
-      background-color: rgba(0,0,0,0.5);
+
+    /* Container per visualizzare Session ID + pulsante copy */
+    #sessionIdContainer {
+      display: none; /* hidden finché non c'è una sessione */
+      margin-bottom: 1rem;
     }
-    .modal-content {
-      background-color: #fff;
-      margin: 15% auto;
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 90%;
-      color: #000;
+    #sessionIdLabel {
+      font-weight: bold;
+    }
+    #sessionIdValue {
+      color: var(--session-id-color);
+      font-weight: bold;
+      margin-left: 0.5rem;
+    }
+
+    /* Footer semplice */
+    footer {
+      background-color: #333;
+      color: #ccc;
+      padding: 1rem;
+      font-size: 0.9rem;
       text-align: center;
     }
-    .modal-content h2 {
-      margin-top: 0;
+    footer a {
+      color: #fff;
+      text-decoration: none;
     }
-    .copy-block {
-      background: #eee;
-      color: #000;
-      padding: 0.5rem;
+
+    /* Tastiera Virtuale */
+    #keyboardContainer {
+      position: fixed;
+      top: 100px;
+      left: 100px;
+      width: 400px;
+      background-color: #f9f9f9;
       border: 1px solid #ccc;
-      border-radius: 4px;
-      cursor: pointer;
-      word-break: break-all;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      z-index: 1000;
+      display: none;
     }
-    .close {
-      color: #aaa;
-      float: right;
-      font-size: 28px;
+    #keyboardHeader {
+      background-color: #007acc;
+      color: white;
+      padding: 10px;
+      cursor: grab;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #keyboardHeader span {
+      font-size: 16px;
       font-weight: bold;
+    }
+    #closeKeyboardButton {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
       cursor: pointer;
     }
-footer {
-  background-color: #333;
-  color: #ccc;
-  text-align: center;
-  padding: 1rem;
-  font-size: 0.9rem;
-}
-
-footer p {
-  text-align: center;
-  margin: 0.5rem 0;
-}
-
+    #virtualKeyboard {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 5px;
+      padding: 10px;
+    }
+    .key {
+      padding: 8px;
+      background-color: #0088cc;
+      color: white;
+      text-align: center;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      user-select: none;
+      font-weight: bold;
+    }
+    .key:hover {
+      background-color: #005f8c;
+    }
+    #keyboardTooltip {
+      position: absolute;
+      width: 300px;
+      background-color: #f9f9f9;
+      color: #333;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      padding: 10px;
+      z-index: 1000;
+      display: none;
+      font-size: 14px;
+      line-height: 1.5;
+    }
   </style>
 </head>
 <body>
   <button id="themeToggle">Giorno</button>
   <header>
-    <h1>Nofuture-X25519 Web Interface</h1>
+    <h1>Nofuture Age Web Interface - Libsodium</h1>
   </header>
-  <div id="sessionIdDisplay" class="hidden"></div>
 
-  <!-- Modal per mostrare la chiave pubblica -->
-  <div id="publicKeyModal" class="modal">
-  <div class="modal-content">
-    <span class="close" id="modalClose">&times;</span>
-    <h2>Public Key</h2>
-    <p>Please share this public key with the intended message recipient.</p>
-    <p class="copy-block" id="modalPublicKey" title="Hover to copy"></p>
+  <!-- Dove visualizziamo il Session ID e un pulsante Copy -->
+  <div id="sessionIdContainer">
+    <span id="sessionIdLabel">Session ID:</span>
+    <span id="sessionIdValue"></span>
+    <button id="copySessionIdBtn" style="margin-left: 0.5rem;">Copy</button>
   </div>
-</div>
 
   <main>
     <p class="instructions">
-      This application is based on <a href="https://github.com/FiloSottile/age"><em>FiloSottile/Age</em></a> present in the <b>Debian Stable</b> repositories.<br>
-      My idea is to use it alongside mainstream messaging applications without extensions to encrypt text.<br>
-      As long as the session is active you will be able to encrypt text for your interlocutor and decrypt it.<br>
-      Once the session is ended, the keys used in the previous session are lost forever making it impossible to retrieve the plaintexts for you<br> 
-      and the rest of the world, <b>forever</b>.
-      </p>
+      My idea is to use it alongside mainstream messaging applications without extensions to encrypt text.
+      As long as the session is active you will be able to encrypt text for your interlocutor and decrypt it.
+      Once the session is ended, the keys used in the previous session are lost making it impossible to retrieve the plaintexts.
+      Pair two sessions, then encrypt/decrypt messages.
+     <h3>How to Use the Interface</h3>
+      <ul>
+        <li><strong>Start a Session:</strong> Click the <em>Start Session</em> button to create a new cryptographic session.</li>
+        <li><strong>Copy Session ID:</strong> Once the session is started, your <em>Session ID</em> will be visible. Click <em>Copy</em> to copy it to your clipboard.</li>
+        <li><strong>Share Session ID:</strong> Share your <em>Session ID</em> with your buddy through a secure channel.</li>
+        <li><strong>Pair Sessions:</strong> Both participants must enter their buddy's <em>Session ID</em> in the <em>Buddy Session ID</em> field and click <em>Pair Sessions</em> to link their sessions.</li>
+        <li><strong>Encrypt Messages:</strong> Enter the text you wish to send in the text field and click <em>Buddy Encrypt</em> to encrypt it. The encrypted message will appear in the text field.</li>
+        <li><strong>Decrypt Messages:</strong> Paste an encrypted message into the text field and click <em>Buddy Decrypt</em> to decrypt it and view the plaintext content.</li>
+      </ul>
+    </p>
+
+    <!-- Pulsanti per creare/terminare la sessione -->
     <div class="session-buttons">
       <button id="startSessionBtn">Start Session</button>
-      <button id="endSessionBtn" class="hidden">End Session</button>
+      <button id="endSessionBtn" style="display:none;">End Session</button>
     </div>
 
+    <!-- Campo per inserire l'ID della sessione buddy -->
     <div class="row">
-      <label for="publicKeyInput">Public Key (for encryption/decryption):</label>
-      <input type="text" id="publicKeyInput" placeholder="Paste public key here"/>
+      <label for="buddySessionIdInput">Session ID:</label>
+      <input type="text" id="buddySessionIdInput" placeholder="Enter your buddy's session ID here...">
+    </div>
+    <div class="session-buttons">
+      <button id="pairSessionsBtn">Pair Sessions</button>
     </div>
 
+    <!-- Campo di testo per scrivere (in chiaro o incollare ciphertext) -->
     <div class="row">
       <label for="textInput">Text (clear or encrypted):</label>
       <textarea id="textInput" placeholder="Enter text here..."></textarea>
     </div>
 
+    <!-- Pulsanti Buddy Encrypt/Decrypt -->
     <div class="buttons">
-      <button id="encryptBtn">Encrypt</button>
-      <button id="decryptBtn">Decrypt</button>
+      <button id="buddyEncryptBtn">Encrypt</button>
+      <button id="buddyDecryptBtn">Decrypt</button>
+    </div>
+
+    <!-- Virtual Keyboard -->
+      <div style="text-align: center; margin-top: 50px; position: relative;">
+      <button id="showKeyboardButton">Virtual Keyboard</button>
+      <div id="keyboardTooltip">
+        <p>Our Virtual Keyboard helps avoid hardware keyloggers by letting you click characters instead of typing them physically.</p>
+      </div>
+    </div>
+    <div id="keyboardContainer">
+      <div id="keyboardHeader">
+        <span>Virtual Keyboard</span>
+        <button id="closeKeyboardButton">&times;</button>
+      </div>
+      <div id="virtualKeyboard"></div>
     </div>
   </main>
 
   <footer>
-    <p><a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;%67%61%62%72%69%65%6C%31%40%76%69%72%65%62%65%6E%74%2E%61%72%74">email me</a></p>
-    <p>Gpg Public Key: <a href="https://yamn.virebent.art/0x6A53DEB9200B6314.asc">0x6A53DEB9200B6314</a></p>
-    <p>Key fingerprint = 569F C114 5F3F 4C61 0545  4E59 6A53 DEB9 200B 6314</p>
-    <p class="highlight"><a href="https://yamn.virebent.art/">victor hostile communication</a> against oppression and oppressors.</p>
+    <p>© <a href="https://yamn.virebent.art">Victor Hostile Communication Center</a> - <a href="https://github.com/gabrix73/Nofuture-Age">Nofuture/Age</a></p>
   </footer>
 
   <script>
+    /* GLOBALS & SELECTORS */
     let currentSessionId = null;
-    const sessionIdDisplay = document.getElementById('sessionIdDisplay');
-    const themeToggle = document.getElementById('themeToggle');
 
-    const startSessionBtn = document.getElementById('startSessionBtn');
-    const endSessionBtn = document.getElementById('endSessionBtn');
-    const publicKeyInput = document.getElementById('publicKeyInput');
-    const textInput = document.getElementById('textInput');
-    const encryptBtn = document.getElementById('encryptBtn');
-    const decryptBtn = document.getElementById('decryptBtn');
+    const sessionIdContainer = document.getElementById('sessionIdContainer');
+    const sessionIdValue     = document.getElementById('sessionIdValue');
+    const copySessionIdBtn   = document.getElementById('copySessionIdBtn');
 
-    const publicKeyModal = document.getElementById('publicKeyModal');
-    const modalPublicKey = document.getElementById('modalPublicKey');
-    const modalClose = document.getElementById('modalClose');
+    const themeToggle        = document.getElementById('themeToggle');
+    let isNightMode          = true;
 
-    const API_START = "/start_session";
-    const API_END = "/end_session";
-    const API_ENCRYPT = "/encrypt";
-    const API_DECRYPT = "/decrypt";
+    const startSessionBtn    = document.getElementById('startSessionBtn');
+    const endSessionBtn      = document.getElementById('endSessionBtn');
 
-    let isNightMode = true;
+    const buddySessionIdInput= document.getElementById('buddySessionIdInput');
+    const pairSessionsBtn    = document.getElementById('pairSessionsBtn');
+
+    const textInput          = document.getElementById('textInput');
+    const buddyEncryptBtn    = document.getElementById('buddyEncryptBtn');
+    const buddyDecryptBtn    = document.getElementById('buddyDecryptBtn');
+
+    /* Adjust these if needed */
+    const API_START          = "/start_session";
+    const API_END            = "/end_session";
+    const API_PAIR           = "/pair_sessions";
+    const API_BUDDY_ENCRYPT  = "/buddy_encrypt";
+    const API_BUDDY_DECRYPT  = "/buddy_decrypt";
+
+    /* THEME: day/night */
     themeToggle.addEventListener('click', () => {
       isNightMode = !isNightMode;
-      if(isNightMode) {
+      if (isNightMode) {
         document.body.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-color-night');
         document.body.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text-color-night');
         themeToggle.textContent = "Giorno";
@@ -240,56 +307,47 @@ footer p {
       }
     });
 
+    /* START SESSION */
     startSessionBtn.addEventListener("click", () => {
       fetch(API_START, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({})
       })
-      .then(response => response.json())
+      .then(r => r.json())
       .then(data => {
         if(data.session_id) {
           currentSessionId = data.session_id;
-          sessionIdDisplay.textContent = "Session-Id: " + currentSessionId;
-          sessionIdDisplay.style.color = "red";
-          sessionIdDisplay.classList.remove('hidden');
 
-          // Mostra il modal con la chiave pubblica
-          if(data.public_key) {
-            modalPublicKey.textContent = data.public_key;
-            publicKeyModal.style.display = "block";
-          }
+          // Show session ID in container
+          sessionIdValue.textContent = currentSessionId; 
+          sessionIdContainer.style.display = "block";
 
-          startSessionBtn.classList.add('hidden');
-          endSessionBtn.classList.remove('hidden');
+          startSessionBtn.style.display = "none";
+          endSessionBtn.style.display   = "inline-block";
         } else {
           alert("Error starting session: " + JSON.stringify(data));
         }
       })
-      .catch(error => {
-        alert("Error: " + error);
-      });
+      .catch(err => alert("Error: " + err));
     });
 
-    modalClose.addEventListener("click", () => {
-      publicKeyModal.style.display = "none";
-    });
-
-    window.addEventListener("click", (event) => {
-      if(event.target === publicKeyModal) {
-        publicKeyModal.style.display = "none";
+    /* COPY session ID */
+    copySessionIdBtn.addEventListener("click", () => {
+      if(!currentSessionId) {
+        alert("No session ID to copy!");
+        return;
       }
+      navigator.clipboard.writeText(currentSessionId)
+        .then(() => {
+          alert("Session ID copied to clipboard!");
+        })
+        .catch(err => {
+          alert("Failed to copy session ID: " + err);
+        });
     });
 
-    // Copia la chiave pubblica al passaggio del mouse
-    modalPublicKey.addEventListener("mouseenter", () => {
-      navigator.clipboard.writeText(modalPublicKey.textContent).then(() => {
-        modalPublicKey.title = "Copied!";
-      }).catch(() => {
-        modalPublicKey.title = "Copy failed!";
-      });
-    });
-
+    /* END SESSION */
     endSessionBtn.addEventListener("click", () => {
       if(!currentSessionId) return;
       fetch(API_END, {
@@ -297,76 +355,117 @@ footer p {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session_id: currentSessionId })
       })
-      .then(response => response.json())
+      .then(r => r.json())
       .then(data => {
         currentSessionId = null;
-        sessionIdDisplay.classList.add('hidden');
-        publicKeyModal.style.display = "none"; 
-        startSessionBtn.classList.remove('hidden');
-        endSessionBtn.classList.add('hidden');
-        publicKeyInput.value = "";
-        textInput.value = "";
+
+        sessionIdContainer.style.display = "none";
+        sessionIdValue.textContent = "";
+
+        startSessionBtn.style.display = "inline-block";
+        endSessionBtn.style.display   = "none";
+
+        buddySessionIdInput.value     = "";
+        textInput.value               = "";
       })
-      .catch(error => {
-        alert("Error ending session: " + error);
-      });
+      .catch(err => alert("Error ending session: " + err));
     });
 
-    encryptBtn.addEventListener("click", () => {
+    /* PAIR SESSIONS */
+    pairSessionsBtn.addEventListener("click", () => {
       if(!currentSessionId) {
-        alert("Start a session first.");
+        alert("Start your session first.");
+        return;
+      }
+      const buddySid = buddySessionIdInput.value.trim();
+      if(!buddySid) {
+        alert("Please enter a Buddy Session ID.");
         return;
       }
       const payload = {
-        session_id: currentSessionId,
-        recipient_public_key_b64: publicKeyInput.value.trim(),
-        plaintext: textInput.value
+        session_id_A: currentSessionId,
+        session_id_B: buddySid
       };
-      fetch(API_ENCRYPT, {
+      fetch(API_PAIR, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       })
-      .then(response => response.json())
+      .then(r => r.json())
+      .then(data => {
+        if(data.status === "paired") {
+          alert("Session " + data.session_id_A + " is now paired with " + data.session_id_B);
+        } else {
+          alert("Pair error: " + JSON.stringify(data));
+        }
+      })
+      .catch(err => alert("Pair sessions error: " + err));
+    });
+
+    /* BUDDY ENCRYPT */
+    buddyEncryptBtn.addEventListener("click", () => {
+      if(!currentSessionId) {
+        alert("Start a session first.");
+        return;
+      }
+      const plaintext = textInput.value.trim();
+      if(!plaintext) {
+        alert("Nothing to encrypt.");
+        return;
+      }
+      const payload = {
+        session_id: currentSessionId,
+        plaintext: plaintext
+      };
+      fetch(API_BUDDY_ENCRYPT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+      .then(r => r.json())
       .then(data => {
         if(data.encrypted_b64) {
           textInput.value = data.encrypted_b64;
         } else {
-          alert("Encryption error: " + JSON.stringify(data));
+          alert("Buddy Encrypt error: " + JSON.stringify(data));
         }
       })
-      .catch(error => {
-        alert("Error: " + error);
-      });
+      .catch(err => alert("Buddy Encrypt fetch error: " + err));
     });
 
-    decryptBtn.addEventListener("click", () => {
+    /* BUDDY DECRYPT */
+    buddyDecryptBtn.addEventListener("click", () => {
       if(!currentSessionId) {
         alert("Start a session first.");
         return;
       }
+      const encrypted_b64 = textInput.value.trim();
+      if(!encrypted_b64) {
+        alert("No ciphertext to decrypt!");
+        return;
+      }
       const payload = {
         session_id: currentSessionId,
-        sender_public_key_b64: publicKeyInput.value.trim(),
-        encrypted_b64: textInput.value.trim()
+        encrypted_b64: encrypted_b64
       };
-      fetch(API_DECRYPT, {
+      fetch(API_BUDDY_DECRYPT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       })
-      .then(response => response.json())
+      .then(r => r.json())
       .then(data => {
         if(data.plaintext) {
           textInput.value = data.plaintext;
         } else {
-          alert("Decryption error: " + JSON.stringify(data));
+          alert("Buddy Decrypt error: " + JSON.stringify(data));
         }
       })
-      .catch(error => {
-        alert("Error: " + error);
-      });
+      .catch(err => alert("Buddy Decrypt fetch error: " + err));
     });
   </script>
+
+  <!-- Carica la tastiera virtuale semplificata -->
+  <script src="js/keyboard2.js" defer></script>
 </body>
 </html>

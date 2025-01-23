@@ -1,200 +1,242 @@
 #!/usr/bin/env python3
 # ------------------------------------------------------------------------------
-# nofutureX25519.py
+# nofutureX25519_pynacl.py
 # ------------------------------------------------------------------------------
-# Questo esempio mostra come integrare "Age" (l'eseguibile ufficiale) in un'app Flask
-# per cifrare/decrittare testi. Non c'è firma, solo cifratura.
+# A Flask web application that:
+#   - Stores ephemeral X25519 keys in RAM only (no disk).
+#   - /start_session      -> Generate a new ephemeral session
+#   - /end_session        -> Wipe the session from RAM
+#   - /pair_sessions      -> "Buddy system": link two sessions so each knows the other's pubkey
+#   - /buddy_encrypt      -> Encrypt from your session to your buddy
+#   - /buddy_decrypt      -> Decrypt from your buddy to you
 #
-# Flow:
-#   1) /start_session  -> genera ephemeral private key (con age-keygen), memorizza in RAM
-#   2) /end_session    -> elimina la private key dalla RAM
-#   3) /encrypt        -> usa "age -r <pubKeyRecipient>" per cifrare (via subprocess)
-#   4) /decrypt        -> usa "age -d -i <privateKey>" per decrittare
-#
-# Tutto è gestito in memoria: si usano file temporanei per interagire con i binari Age.
+# Uses X25519 for ECDH, and PyNaCl's Box for encryption (which uses XSalsa20 and Poly1305).
+# Listens on 127.0.0.1:7771 by default.
 # ------------------------------------------------------------------------------
+
 import os
 import base64
 import json
-import subprocess
-import tempfile
+import secrets
 import traceback
+import hashlib
+import logging
 
 from flask import Flask, request, jsonify
+import nacl.utils
+from nacl.public import PrivateKey, PublicKey, Box
+from nacl.encoding import Base64Encoder
 
 app = Flask(__name__)
 
-# In memoria:
+# Configura logging
+logging.basicConfig(level=logging.DEBUG)
+
+# In-memory sessions: ephemeral
 # SESSIONS[session_id] = {
-#   'private_key_str': <str>,
-#   'public_key_str':  <str>
+#   'private_key': <PrivateKey>,
+#   'public_key':  <PublicKey>,
+#   'buddy_public_key': <PublicKey> or None
 # }
 SESSIONS = {}
 
 # ------------------------------------------------------------------------------
-# Funzioni di supporto a "age"
+# HELPER FUNCTIONS
 # ------------------------------------------------------------------------------
 
-def generate_age_keypair():
+def generate_x25519_keypair():
+    """Generate an X25519 keypair."""
+    priv = PrivateKey.generate()
+    pub = priv.public_key
+    return priv, pub
+
+def encrypt_message(box, plaintext):
     """
-    Esegue 'age-keygen' e cerca di estrarre la linea della chiave pubblica.
-    Ritorna (private_key_text, public_key_str).
+    Encrypts the plaintext using the provided Box.
+    Returns a base64-encoded JSON string containing ciphertext and nonce.
     """
-    proc = subprocess.run(
-        ["age-keygen"],
-        capture_output=True,
-        text=True
-    )
-    if proc.returncode != 0:
-        raise RuntimeError(f"age-keygen failed: {proc.stderr}")
+    ciphertext = box.encrypt(plaintext.encode('utf-8'))
+    # PyNaCl's Box.encrypt includes the nonce and ciphertext together
+    # To make it JSON-friendly, we'll separate them
+    encrypted_data = {
+        "ciphertext": base64.b64encode(ciphertext.ciphertext).decode('utf-8'),
+        "nonce": base64.b64encode(ciphertext.nonce).decode('utf-8')
+    }
+    return base64.b64encode(json.dumps(encrypted_data).encode('utf-8')).decode('utf-8')
 
-    full_key = proc.stdout
-    pubKeyLine = None
-    for line in full_key.splitlines():
-        if line.startswith("# public key:"):
-            pubKeyLine = line.strip()
-            break
-    if not pubKeyLine:
-        raise ValueError("Cannot find public key line in age-keygen output.")
-
-    parts = pubKeyLine.split("public key:")
-    if len(parts) < 2:
-        raise ValueError("Malformed public key line.")
-    public_key = parts[1].strip()
-
-    return full_key, public_key
-
-def age_encrypt(recipient_pub_key, plaintext):
-    with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmpIn:
-        tmpIn.write(plaintext)
-        tmpIn.flush()
-        inName = tmpIn.name
-
-    outName = inName + ".age"
-
+def decrypt_message(box, encrypted_b64):
+    """
+    Decrypts the base64-encoded JSON string containing ciphertext and nonce using the provided Box.
+    Returns the plaintext string.
+    """
     try:
-        proc = subprocess.run(
-            ["age", "-r", recipient_pub_key, "-o", outName, inName],
-            capture_output=True,
-            text=True
-        )
-        if proc.returncode != 0:
-            raise RuntimeError(f"age encrypt failed: {proc.stderr}")
-
-        with open(outName, "rb") as f:
-            cipher_bytes = f.read()
-        encrypted_b64 = base64.b64encode(cipher_bytes).decode('utf-8')
-        return encrypted_b64
-    finally:
-        try: os.remove(inName)
-        except: pass
-        try: os.remove(outName)
-        except: pass
-
-def age_decrypt(private_key_text, ciphertext_b64):
-    raw_cipher = base64.b64decode(ciphertext_b64)
-    with tempfile.NamedTemporaryFile(delete=False) as tmpCipher:
-        tmpCipher.write(raw_cipher)
-        tmpCipher.flush()
-        cipherName = tmpCipher.name
-
-    with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmpKey:
-        tmpKey.write(private_key_text)
-        tmpKey.flush()
-        privName = tmpKey.name
-
-    outName = cipherName + ".dec"
-
-    try:
-        proc = subprocess.run(
-            ["age", "-d", "-i", privName, "-o", outName, cipherName],
-            capture_output=True,
-            text=True
-        )
-        if proc.returncode != 0:
-            raise RuntimeError(f"age decrypt failed: {proc.stderr}")
-
-        with open(outName, "r", encoding="utf-8") as f:
-            plaintext = f.read()
-        return plaintext
-    finally:
-        for fname in [cipherName, privName, outName]:
-            try: os.remove(fname)
-            except: pass
-
-# ------------------------------------------------------------------------------
-# ROUTE Flask
-# ------------------------------------------------------------------------------
-
-@app.route('/start_session', methods=['POST'])
-def start_session():
-    try:
-        privateKeyStr, publicKeyStr = generate_age_keypair()
-        session_id = base64.urlsafe_b64encode(os.urandom(16)).decode('utf-8').rstrip('=')
-
-        SESSIONS[session_id] = {
-            'private_key_str': privateKeyStr,
-            'public_key_str':  publicKeyStr
-        }
-
-        return jsonify({
-            "session_id": session_id,
-            "public_key": publicKeyStr
-        })
+        encrypted_json = base64.b64decode(encrypted_b64).decode('utf-8')
+        encrypted_data = json.loads(encrypted_json)
+        ciphertext = base64.b64decode(encrypted_data['ciphertext'])
+        nonce = base64.b64decode(encrypted_data['nonce'])
+        plaintext = box.decrypt(ciphertext, nonce)
+        return plaintext.decode('utf-8')
     except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": f"{e.__class__.__name__}: {str(e)}"}), 400
+        raise ValueError("InvalidTag or decryption failed") from e
 
-@app.route('/end_session', methods=['POST'])
+# ------------------------------------------------------------------------------
+# ENDPOINTS
+# ------------------------------------------------------------------------------
+
+@app.route("/start_session", methods=["POST"])
+def start_session():
+    """
+    Creates a new ephemeral X25519 keypair, returns {session_id, public_key, fingerprint}
+    All stored in memory (SESSIONS).
+    """
+    priv, pub = generate_x25519_keypair()
+    pub_raw = pub.encode(encoder=Base64Encoder).decode('utf-8')
+
+    # Generate a unique session_id
+    session_id = base64.urlsafe_b64encode(secrets.token_bytes(12)).decode('utf-8').rstrip("=")
+
+    # Save in memory
+    SESSIONS[session_id] = {
+        "private_key": priv,
+        "public_key": pub,
+        "buddy_public_key": None
+    }
+
+    # Fingerprint for debugging
+    fingerprint = hashlib.sha256(base64.b64decode(pub_raw)).digest()
+    fingerprint_b64 = base64.b64encode(fingerprint).decode('utf-8')
+
+    return jsonify({
+        "session_id": session_id,
+        "public_key": pub_raw,
+        "fingerprint": fingerprint_b64
+    })
+
+@app.route("/end_session", methods=["POST"])
 def end_session():
+    """
+    Expects { "session_id": "..." }
+    Removes that session from SESSIONS.
+    """
     data = request.get_json(force=True)
-    sid = data.get('session_id')
+    sid = data.get("session_id")
     if sid and sid in SESSIONS:
         del SESSIONS[sid]
-        return jsonify({"status": "ended", "session_id": sid})
-    else:
-        return jsonify({"error": "Invalid session_id"}), 400
+        return jsonify({"status":"ended","session_id":sid})
+    return jsonify({"error":"Invalid session_id"}), 400
 
-@app.route('/encrypt', methods=['POST'])
-def encrypt_endpoint():
+@app.route("/pair_sessions", methods=["POST"])
+def pair_sessions():
+    """
+    Expects { "session_id_A":"...", "session_id_B":"..." }
+    Links them. So SESSIONS[sidA]["buddy_public_key"] = pubB, and vice versa.
+    Returns { "status":"paired", "session_id_A":..., "public_key_A":..., "session_id_B":..., "public_key_B":... }
+    """
     data = request.get_json(force=True)
-    sid = data.get('session_id')
-    recipient_pub = data.get('recipient_public_key_b64')
-    plaintext = data.get('plaintext')
+    sidA = data.get("session_id_A")
+    sidB = data.get("session_id_B")
+
+    if not sidA or not sidB:
+        return jsonify({"error":"Missing session_id_A or session_id_B"}), 400
+    if sidA not in SESSIONS or sidB not in SESSIONS:
+        return jsonify({"error":"One or both session IDs invalid"}), 400
+
+    # Retrieve public keys
+    pubA = SESSIONS[sidA]["public_key"]
+    pubB = SESSIONS[sidB]["public_key"]
+
+    # Link buddies
+    SESSIONS[sidA]["buddy_public_key"] = pubB
+    SESSIONS[sidB]["buddy_public_key"] = pubA
+
+    return jsonify({
+        "status":"paired",
+        "session_id_A": sidA,
+        "public_key_A": SESSIONS[sidA]["public_key"].encode(encoder=Base64Encoder).decode('utf-8'),
+        "session_id_B": sidB,
+        "public_key_B": SESSIONS[sidB]["public_key"].encode(encoder=Base64Encoder).decode('utf-8')
+    })
+
+@app.route("/buddy_encrypt", methods=["POST"])
+def buddy_encrypt():
+    """
+    Expects { "session_id":"...", "plaintext":"..." }
+    Looks up session, finds the buddy, uses buddy's public key for encryption.
+    Returns { "encrypted_b64":"..." }
+    """
+    data = request.get_json(force=True)
+    sid = data.get("session_id")
+    plaintext = data.get("plaintext")
+
+    logging.debug(f"Encrypt request for session_id: {sid}, plaintext: {plaintext}")
 
     if not sid or sid not in SESSIONS:
-        return jsonify({"error": "Invalid or missing session_id"}), 400
-    if not recipient_pub or not plaintext:
-        return jsonify({"error": "Missing recipient_public_key_b64 or plaintext"}), 400
+        logging.error("Invalid or missing session_id")
+        return jsonify({"error":"Invalid or missing session_id"}), 400
+    if not plaintext:
+        logging.error("Missing plaintext")
+        return jsonify({"error":"Missing plaintext"}), 400
+
+    buddy_pub = SESSIONS[sid].get("buddy_public_key")
+    if not buddy_pub:
+        logging.error("Session not paired or buddy not found")
+        return jsonify({"error":"Session not paired or buddy not found"}), 400
 
     try:
-        encrypted_b64 = age_encrypt(recipient_pub, plaintext)
+        # Create Box with own private key and buddy's public key
+        box = Box(SESSIONS[sid]["private_key"], buddy_pub)
+
+        # Encrypt the message
+        encrypted_b64 = encrypt_message(box, plaintext)
+        logging.debug(f"Encrypted message: {encrypted_b64}")
         return jsonify({"encrypted_b64": encrypted_b64})
     except Exception as e:
+        logging.error(f"Encryption failed: {e}")
         traceback.print_exc()
         return jsonify({"error": f"{e.__class__.__name__}: {str(e)}"}), 400
 
-@app.route('/decrypt', methods=['POST'])
-def decrypt_endpoint():
+@app.route("/buddy_decrypt", methods=["POST"])
+def buddy_decrypt():
+    """
+    Expects { "session_id":"...", "encrypted_b64":"..." }
+    Uses the buddy's public key to decrypt.
+    Returns { "plaintext":"..." }
+    """
     data = request.get_json(force=True)
-    sid = data.get('session_id')
-    enc = data.get('encrypted_b64')
+    sid = data.get("session_id")
+    encrypted_b64 = data.get("encrypted_b64")
+
+    logging.debug(f"Decrypt request for session_id: {sid}, encrypted_b64: {encrypted_b64}")
 
     if not sid or sid not in SESSIONS:
-        return jsonify({"error": "Invalid or missing session_id"}), 400
-    if not enc:
-        return jsonify({"error": "Missing encrypted_b64"}), 400
+        logging.error("Invalid or missing session_id")
+        return jsonify({"error":"Invalid or missing session_id"}), 400
+    if not encrypted_b64:
+        logging.error("Missing encrypted_b64")
+        return jsonify({"error":"Missing encrypted_b64"}), 400
+
+    buddy_pub = SESSIONS[sid].get("buddy_public_key")
+    if not buddy_pub:
+        logging.error("Session not paired or buddy not found")
+        return jsonify({"error":"Session not paired or buddy not found"}), 400
 
     try:
-        privateKeyStr = SESSIONS[sid]['private_key_str']
-        plaintext = age_decrypt(privateKeyStr, enc)
+        # Create Box with own private key and buddy's public key
+        box = Box(SESSIONS[sid]["private_key"], buddy_pub)
+
+        # Decrypt the message
+        plaintext = decrypt_message(box, encrypted_b64)
+        logging.debug(f"Decrypted plaintext: {plaintext}")
         return jsonify({"plaintext": plaintext})
     except Exception as e:
+        logging.error(f"Decryption failed: {e}")
         traceback.print_exc()
         return jsonify({"error": f"{e.__class__.__name__}: {str(e)}"}), 400
 
 # ------------------------------------------------------------------------------
 # MAIN
 # ------------------------------------------------------------------------------
+
 if __name__ == "__main__":
-    app.run(host='127.0.0.1', port=7771, debug=False)
+    print(app.url_map)  # <--- debug
+    app.run(host="127.0.0.1", port=7771, debug=True)
