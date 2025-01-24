@@ -1,4 +1,4 @@
-# Nofuture-Age
+# Nofuture-Buddy
 <h2>The idea</h2>
 This web interface is designed to work alongside mainstream chat interfaces. 
 It wants to be like an otr or omemo plugin for xmpp, but external to the chat application. 
